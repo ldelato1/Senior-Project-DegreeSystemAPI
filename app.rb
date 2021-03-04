@@ -12,8 +12,8 @@ require File.expand_path("../models/PlannedFutureCourses.rb", __FILE__)
 require File.expand_path("../models/StudentCourses.rb", __FILE__)
 
 
-set :bind , '192.168.1.210'
-set :port, '4567'
+set :bind , '127.0.0.1'
+set :port, '8080'
 
 
 #require_relative 'models/User.rb'
