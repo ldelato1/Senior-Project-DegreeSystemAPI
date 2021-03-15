@@ -12,7 +12,7 @@ require File.expand_path("../models/PlannedFutureCourses.rb", __FILE__)
 require File.expand_path("../models/StudentCourses.rb", __FILE__)
 
 
-set :bind , '127.0.0.1'
+set :bind , '192.168.0.109'
 set :port, '8080'
 
 
@@ -1448,17 +1448,18 @@ post '/selfadd/StudentCourses' do
     params["Semester"] ? (semester = params['Semester']): (halt 400, {"message": "Missing Semester paramater"}.to_json)
     params["Grade"] ? (grade = params['Grade']): (halt 400, {"message": "Missing Grade paramater"}.to_json)
     notes = params['Notes']
-  elsif !params["CourseID"]
+  else
     
     #params["CourseNum"] ? (courseNum = params['CourseID']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
     #params["CourseNum"] ? (courseDept = params['CourseID']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
     
     c = AllCourses.first(Name: params["CourseName"])
-    courseid = c.CourseID
+    
+    courseid = params["CourseID"] #c.CourseID
     #halt 200, c.to_json
     #property :CourseDept, String
     #property :CourseNum, Integer
-
+    params["CourseName"] ? (name = params['CourseName']): (halt 400, {"message": "Missing Course Name"}.to_json)
     params["Semester"] ? (semester = params['Semester']): (halt 400, {"message": "Missing Semester paramater"}.to_json)
     params["Grade"] ? (grade = params['Grade']): (halt 400, {"message": "Missing Grade paramater"}.to_json)
     notes = params['Notes']
@@ -1468,9 +1469,9 @@ post '/selfadd/StudentCourses' do
 
 
 
-  if !is_number?(courseid)
-    halt 400, {'message': 'CourseID param not an integer'}.to_json
-  end
+  #if !is_number?(courseid)
+    #halt 400, {'message': 'CourseID param not an integer'}.to_json
+  #end
 
   if courseid != '' && semester != '' && grade != ''
     if userid
@@ -1523,11 +1524,11 @@ end
 
 delete '/remove/StudentCourse' do
   api_authenticate!
-  params["CourseName"] ? (cn = params['CourseName']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
+  #params["CourseName"] ? (cn = params['CourseName']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
 
-  c = AllCourses.first(Name: cn)
+  c = AllCourses.first(Name: params["CourseName"])
   
-  Target = StudentCourses.first(UserID: current_user.id, CourseID: c.CourseID)
+  Target = StudentCourses.first(UserID: current_user.id, CourseID: params["CourseID"])
   if Target
      Target.destroy
      halt 200, {"message": "Deleted Successfully"}.to_json
