@@ -1354,6 +1354,114 @@ end
 
     end
   end
+
+  get '/CompleteCourses' do
+    api_authenticate!
+
+    email = params['Email'] if params['Email']
+    userid = params['StudentID'] if params['StudentID']
+
+    results = Array.new {Hash.new}
+
+    if email
+      
+
+      student = User.first(Email: email)
+      
+      ac = AllCourses.all
+
+      ac.each do |i|
+        sc = StudentCourses.first(UserID: student.id, CourseID: i.CourseID)
+        if sc 
+          results << {
+            'CourseID'      => i.CourseID,
+            'CourseDept'    => i.CourseDept,
+            'CourseNum'     => i.CourseNum,
+            'Name'          => i.Name,
+            'Institution'   => i.Institution,
+            'Semester'      => sc.Semester,
+            'Grade'         => sc.Grade,
+          }
+        else
+          results << {
+            'CourseID'      => i.CourseID,
+            'CourseDept'    => i.CourseDept,
+            'CourseNum'     => i.CourseNum,
+            'Name'          => i.Name,
+            'Institution'   => i.Institution,
+            'Semester'      => 'n',
+            'Grade'         => 'n',
+          }
+        end
+      end
+      halt 200, results.to_json
+    elsif userid
+      
+
+      student = User.first(id: userid)
+      
+      ac = AllCourses.all
+
+      ac.each do |i|
+        sc = StudentCourses.first(UserID: student.id, CourseID: i.CourseID)
+        if sc 
+          results << {
+            'CourseID'      => i.CourseID,
+            'CourseDept'    => i.CourseDept,
+            'CourseNum'     => i.CourseNum,
+            'Name'          => i.Name,
+            'Institution'   => i.Institution,
+            'Semester'      => sc.Semester,
+            'Grade'         => sc.Grade,
+          }
+        else
+          results << {
+            'CourseID'      => i.CourseID,
+            'CourseDept'    => i.CourseDept,
+            'CourseNum'     => i.CourseNum,
+            'Name'          => i.Name,
+            'Institution'   => i.Institution,
+            'Semester'      => 'n',
+            'Grade'         => 'n',
+          }
+        end
+      end
+      halt 200, results.to_json
+
+    else
+      #s_courses = StudentCourses.all(UserID: current_user.id)
+      ac = AllCourses.all
+
+      ac.each do |i|
+        sc = StudentCourses.first(UserID: current_user.id, CourseID: i.CourseID)
+        if sc
+          results << {
+            'CourseID'      => i.CourseID,
+            'CourseDept'    => i.CourseDept,
+            'CourseNum'     => i.CourseNum,
+            'Name'          => i.Name,
+            'Institution'   => i.Institution,
+            'Semester'      => sc.Semester,
+            'Grade'         => sc.Grade,
+          }
+        else
+          results << {
+            'CourseID'      => i.CourseID,
+            'CourseDept'    => i.CourseDept,
+            'CourseNum'     => i.CourseNum,
+            'Name'          => i.Name,
+            'Institution'   => i.Institution,
+            'Semester'      => 'n',
+            'Grade'         => 'n',
+          }
+        end
+      end
+
+      halt 200, results.to_json
+
+
+    end
+  end
 #### Wink Wink my doods
 
 
@@ -1455,13 +1563,15 @@ post '/selfadd/StudentCourses' do
     
     c = AllCourses.first(Name: params["CourseName"])
     
-    courseid = params["CourseID"] #c.CourseID
+    courseid = c.CourseID #c.CourseID
+    hours = c.Hours
     #halt 200, c.to_json
     #property :CourseDept, String
     #property :CourseNum, Integer
     params["CourseName"] ? (name = params['CourseName']): (halt 400, {"message": "Missing Course Name"}.to_json)
     params["Semester"] ? (semester = params['Semester']): (halt 400, {"message": "Missing Semester paramater"}.to_json)
     params["Grade"] ? (grade = params['Grade']): (halt 400, {"message": "Missing Grade paramater"}.to_json)
+    params["CourseCompleteness"] ? (completeness = params['CourseCompleteness']): (halt 400, {"message": "Missing Course Completeness paramater"}.to_json)
     notes = params['Notes']
   end
 
@@ -1489,6 +1599,11 @@ post '/selfadd/StudentCourses' do
         c.CourseID = courseid
         c.Semester = semester
         c.Grade = grade
+        c.Hours = hours
+        c.Completeness = completeness
+        h = User.first(id: current_user.id)
+        totalhours = h.Hours + 3
+      h.Hours = totalhours
         if notes != nil
           c.Notes = notes 
         end
@@ -1510,16 +1625,24 @@ post '/selfadd/StudentCourses' do
       c.CourseID = courseid
       c.Semester = semester
       c.Grade = grade
+      c.Hours = hours
+      c.Completeness = completeness
+      h = User.first(id: current_user.id)
+      totalhours = h.Hours + c.Hours
+      h.Hours = totalhours
       if notes != nil
         c.Notes = notes
       end
       c.save
+      h.save
       halt 201, {"message": "Course added successfully"}.to_json
     end
   else
     halt 400, {"message": "CourseID, Semester, or Grade paramaters can't be empty strings"}.to_json
   end
 end
+
+
 ###DELETE from Mario
 
 delete '/remove/StudentCourse' do
@@ -1527,11 +1650,15 @@ delete '/remove/StudentCourse' do
   #params["CourseName"] ? (cn = params['CourseName']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
 
   c = AllCourses.first(Name: params["CourseName"])
-  
-  Target = StudentCourses.first(UserID: current_user.id, CourseID: params["CourseID"])
+ 
+  Target = StudentCourses.first(UserID: current_user.id, CourseID: c.CourseID)
   if Target
-     Target.destroy
-     halt 200, {"message": "Deleted Successfully"}.to_json
+    h = User.first(id: current_user.id)
+    totalhours = h.Hours - c.Hours
+    h.Hours = totalhours
+    h.save
+    Target.destroy
+    halt 200, {"message": "Deleted Successfully"}.to_json
   else
      halt 404, {"message": "Object Not Found"}
   end

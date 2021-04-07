@@ -9,6 +9,8 @@ class StudentCourses
   property :CourseID, Integer, :key => true
   property :Semester, String,   :key => true
   property :Grade, String
+  property :Hours, Integer
+  property :Completeness, String
   property :Approved, Boolean, :default => true
   property :Notes, String
 

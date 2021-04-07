@@ -8,5 +8,6 @@ class AllCourses
   property :CourseNum, Integer
   property :Name, String
   property :Institution, String
+  property :Hours, Integer
 end
 
