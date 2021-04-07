@@ -1354,7 +1354,7 @@ end
 
     end
   end
-
+  ########################ADDS COMPLETE COURSES TO COMPLETE COURSES TAB########################################
   get '/CompleteCourses' do
     api_authenticate!
 
@@ -1564,6 +1564,7 @@ post '/selfadd/StudentCourses' do
     c = AllCourses.first(Name: params["CourseName"])
     
     courseid = c.CourseID #c.CourseID
+    # we are assigning the hours for the specific course under CourseName to the variable hours
     hours = c.Hours
     #halt 200, c.to_json
     #property :CourseDept, String
@@ -1596,13 +1597,14 @@ post '/selfadd/StudentCourses' do
         # BUT NOT SURE WHY WE'D NEED THIS CHECK HERE
         c = StudentCourses.new
         userid != '' ? (c.UserID = userid) : (halt 400, {"message": "Missing UserID paramater"}.to_json)
+        #when adding a course we must get the courseID, semester, grade, hours and completeness of the specific course so it can be added to student courses
         c.CourseID = courseid
         c.Semester = semester
         c.Grade = grade
         c.Hours = hours
         c.Completeness = completeness
         h = User.first(id: current_user.id)
-        totalhours = h.Hours + 3
+        totalhours = h.Hours + c.Hours
       h.Hours = totalhours
         if notes != nil
           c.Notes = notes 
