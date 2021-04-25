@@ -12,7 +12,7 @@ require File.expand_path("../models/PlannedFutureCourses.rb", __FILE__)
 require File.expand_path("../models/StudentCourses.rb", __FILE__)
 
 
-set :bind , '192.168.0.109'
+set :bind , '129.113.58.121'
 set :port, '8080'
 
 
@@ -1547,6 +1547,7 @@ end
   end
 end
 #### POST COURSE
+#### GPA calculation
 post '/selfadd/StudentCourses' do
   
   api_authenticate!
@@ -1605,15 +1606,29 @@ post '/selfadd/StudentCourses' do
         c.Completeness = completeness
         h = User.first(id: current_user.id)
         totalhours = h.Hours + c.Hours
-      h.Hours = totalhours
+        h.Hours = totalhours
+        totalgradepoints = 0
+        if grade = 'A'
+          totalgradepoints = 4
+        end
+
+        totalweightedgpa = h.TotalWeightedGPApoints + (totalgradepoints * 3)
+        h.TotalWeightedGPApoints = totalweightedgpa
+        finalgpa = totalweightedgpa / h.Hours
+        h.GPA = finalgpa
+
+       
+      #else
+       # halt 401, {"message": "Unauthorized user"}.to_json
+      #end
+
+        
         if notes != nil
           c.Notes = notes 
         end
         c.save
+        h.save
         halt 201, {"message": "Course added successfully"}.to_json
-      #else
-       # halt 401, {"message": "Unauthorized user"}.to_json
-      #end
     else
        #*************** DUPLICATE CHECK *************
        halt 409, {'message': 'Duplicate Entry'}.to_json if StudentCourses.first(UserID: current_user.id, CourseID: courseid)
@@ -1632,6 +1647,25 @@ post '/selfadd/StudentCourses' do
       h = User.first(id: current_user.id)
       totalhours = h.Hours + c.Hours
       h.Hours = totalhours
+      totalgradepoints = 0
+      if grade === 'A'
+        totalgradepoints = 4
+      elsif grade === 'B'
+        totalgradepoints = 3
+      elsif grade === 'C'
+        totalgradepoints = 2
+      elsif grade === 'D'
+        totalgradepoints = 1
+      else
+        totalgradepoints = 0
+      end
+
+      totalweightedgpa = h.TotalWeightedGPApoints + (totalgradepoints * 3)
+      h.TotalWeightedGPApoints = totalweightedgpa
+      finalgpa = totalweightedgpa / h.Hours
+      h.GPA = finalgpa
+
+      
       if notes != nil
         c.Notes = notes
       end

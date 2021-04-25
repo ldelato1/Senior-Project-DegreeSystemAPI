@@ -10,6 +10,8 @@ class User
   property :LastName, String
   property :Password, String
   property :GPA, Float
+  property :TotalGPApoints, Float
+  property :TotalWeightedGPApoints, Float
   property :CatalogYear, String
   property :Classification, String
   property :Hours, Integer
