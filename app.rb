@@ -12,7 +12,7 @@ require File.expand_path("../models/PlannedFutureCourses.rb", __FILE__)
 require File.expand_path("../models/StudentCourses.rb", __FILE__)
 
 
-set :bind , '129.113.58.121'
+set :bind , '192.168.0.109'
 set :port, '8080'
 
 
@@ -1473,6 +1473,7 @@ end
     userid = current_user.id
     params["CourseID"] ? (courseid = params['CourseID']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
     params["Semester"] ? (semester = params['Semester']): (halt 400, {"message": "Missing Semester paramater"}.to_json)
+    params["CourseCompleteness"] ? (completeness = params['CourseCompleteness']): (halt 400, {"message": "Missing Course Completeness paramater"}.to_json)
     #params["Grade"] ? (grade = params['Grade']): (halt 400, {"message": "Missing Grade paramater"}.to_json)
     notes = params['Notes']
   elsif !params["CourseID"]
@@ -1487,6 +1488,7 @@ end
     #property :CourseNum, Integer
 
     params["Semester"] ? (semester = params['Semester']): (halt 400, {"message": "Missing Semester paramater"}.to_json)
+    params["CourseCompleteness"] ? (completeness = params['CourseCompleteness']): (halt 400, {"message": "Missing Course Completeness paramater"}.to_json)
     #params["Grade"] ? (grade = params['Grade']): (halt 400, {"message": "Missing Grade paramater"}.to_json)
     notes = params['Notes']
   end
@@ -1506,7 +1508,7 @@ end
         #*************** DUPLICATE CHECK *************
         halt 409, {'message': 'Duplicate Entry'}.to_json if PlannedFutureCourses.first(UserID: userid, CourseID: courseid)
         #************************************************
-
+        halt 409, {'message': 'Course must be incomplete in order to be added to planned courses!'}.to_json if completeness == "Complete"
         # I COULD CHECK IF COURSE CATALOG YEAR MATCHES USER CATALOG YEAR
         # i.f same_catalog_year(courseid, userid)    
         # BUT NOT SURE WHY WE'D NEED THIS CHECK HERE
@@ -1514,6 +1516,7 @@ end
         userid != '' ? (c.UserID = userid) : (halt 400, {"message": "Missing UserID paramater"}.to_json)
         c.CourseID = courseid
         c.Semester = semester
+        c.Completeness = completeness
         #c.Grade = grade
         if notes != nil
           c.Notes = notes 
@@ -1527,6 +1530,7 @@ end
        #*************** DUPLICATE CHECK *************
        halt 409, {'message': 'Duplicate Entry'}.to_json if PlannedFutureCourses.first(UserID: current_user.id, CourseID: courseid)
        #************************************************
+       halt 409, {'message': 'Course must be incomplete in order to be added to planned courses!'}.to_json if completeness == "Complete"
 
       # I COULD CHECK IF COURSE CATALOG YEAR MATCHES USER CATALOG YEAR
       # i.f same_catalog_year(courseid, current_user.id)
@@ -1535,6 +1539,7 @@ end
       c.UserID = current_user.id
       c.CourseID = courseid
       c.Semester = semester
+      c.Completeness = completeness
       #c.Grade = grade
       if notes != nil
         c.Notes = notes
@@ -1544,6 +1549,114 @@ end
     end
   else
     halt 400, {"message": "CourseID, Semester, or Grade paramaters can't be empty strings"}.to_json
+  end
+end
+
+get '/PlannedFutureCourses' do
+  api_authenticate!
+
+  email = params['Email'] if params['Email']
+  userid = params['StudentID'] if params['StudentID']
+
+  results = Array.new {Hash.new}
+
+  if email
+    
+
+    student = User.first(Email: email)
+    
+    ac = AllCourses.all
+
+    ac.each do |i|
+      sc = PlannedFutureCourses.first(UserID: student.id, CourseID: i.CourseID)
+      if sc 
+        results << {
+          'CourseID'      => i.CourseID,
+          'CourseDept'    => i.CourseDept,
+          'CourseNum'     => i.CourseNum,
+          'Name'          => i.Name,
+          'Institution'   => i.Institution,
+          'Semester'      => sc.Semester,
+          
+        }
+      else
+        results << {
+          'CourseID'      => i.CourseID,
+          'CourseDept'    => i.CourseDept,
+          'CourseNum'     => i.CourseNum,
+          'Name'          => i.Name,
+          'Institution'   => i.Institution,
+          'Semester'      => 'n',
+          
+        }
+      end
+    end
+    halt 200, results.to_json
+  elsif userid
+    
+
+    student = User.first(id: userid)
+    
+    ac = AllCourses.all
+
+    ac.each do |i|
+      sc = PlannedFutureCourses.first(UserID: student.id, CourseID: i.CourseID)
+      if sc 
+        results << {
+          'CourseID'      => i.CourseID,
+          'CourseDept'    => i.CourseDept,
+          'CourseNum'     => i.CourseNum,
+          'Name'          => i.Name,
+          'Institution'   => i.Institution,
+          'Semester'      => sc.Semester,
+          
+        }
+      else
+        results << {
+          'CourseID'      => i.CourseID,
+          'CourseDept'    => i.CourseDept,
+          'CourseNum'     => i.CourseNum,
+          'Name'          => i.Name,
+          'Institution'   => i.Institution,
+          'Semester'      => 'n',
+          
+        }
+      end
+    end
+    halt 200, results.to_json
+
+  else
+    #s_courses = StudentCourses.all(UserID: current_user.id)
+    ac = AllCourses.all
+
+    ac.each do |i|
+      sc = PlannedFutureCourses.first(UserID: current_user.id, CourseID: i.CourseID)
+      if sc
+        results << {
+          'CourseID'      => i.CourseID,
+          'CourseDept'    => i.CourseDept,
+          'CourseNum'     => i.CourseNum,
+          'Name'          => i.Name,
+          'Institution'   => i.Institution,
+          'Semester'      => sc.Semester,
+          
+        }
+      else
+        results << {
+          'CourseID'      => i.CourseID,
+          'CourseDept'    => i.CourseDept,
+          'CourseNum'     => i.CourseNum,
+          'Name'          => i.Name,
+          'Institution'   => i.Institution,
+          'Semester'      => 'n',
+          
+        }
+      end
+    end
+
+    halt 200, results.to_json
+
+
   end
 end
 #### POST COURSE
@@ -1592,6 +1705,7 @@ post '/selfadd/StudentCourses' do
         #*************** DUPLICATE CHECK *************
         halt 409, {'message': 'Duplicate Entry'}.to_json if StudentCourses.first(UserID: userid, CourseID: courseid)
         #************************************************
+        halt 409, {'message': 'Course must be incomplete in order to be added to complete courses'}.to_json if completeness == "Incomplete"
 
         # I COULD CHECK IF COURSE CATALOG YEAR MATCHES USER CATALOG YEAR
         # i.f same_catalog_year(courseid, userid)    
@@ -1632,8 +1746,9 @@ post '/selfadd/StudentCourses' do
     else
        #*************** DUPLICATE CHECK *************
        halt 409, {'message': 'Duplicate Entry'}.to_json if StudentCourses.first(UserID: current_user.id, CourseID: courseid)
+       #checks if course is complete or incomplete
+       halt 409, {'message': 'Course must be incomplete in order to be added to complete courses'}.to_json if completeness == "Incomplete"
        #************************************************
-
       # I COULD CHECK IF COURSE CATALOG YEAR MATCHES USER CATALOG YEAR
       # i.f same_catalog_year(courseid, current_user.id)
       # BUT NOT SURE WHY WE'D NEED THIS CHECK HERE
@@ -1703,12 +1818,15 @@ end
 
 delete '/remove/PlannedStudentCourse' do
   api_authenticate!
-  params["CourseName"] ? (cn = params['CourseName']): (halt 400, {"message": "Missing CourseID paramater"}.to_json)
+  params["CourseName"] ? (cn = params['CourseName']): (halt 400, {"message": "Missing Course Name paramater"}.to_json)
 
   c = AllCourses.first(Name: cn)
   
   Target = PlannedFutureCourses.first(UserID: current_user.id, CourseID: c.CourseID)
   if Target
+    h = User.first(id: current_user.id)
+    totalhours = h.Hours - c.Hours
+    h.Hours = totalhours
      Target.destroy
      halt 200, {"message": "Deleted Successfully"}.to_json
   else
